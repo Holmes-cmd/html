@@ -2,8 +2,6 @@ from flask import Flask, request, redirect, url_for, render_template_string
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-
-# Cấu hình SQLite database
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///code_storage.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -15,11 +13,10 @@ class CodeEntry(db.Model):
     problem = db.Column(db.Text, nullable=False)
     code = db.Column(db.Text, nullable=False)
 
-# ✅ Phải có application context khi tạo database
 with app.app_context():
     db.create_all()
 
-# HTML template danh sách bài code
+# Template HTML trang danh sách (thêm nút xoá)
 INDEX_HTML = '''
 <!doctype html>
 <title>Code Storage</title>
@@ -30,7 +27,7 @@ INDEX_HTML = '''
     <input type="submit" value="Tìm kiếm">
 </form>
 
-<a href="{{ url_for('add') }}">Thêm bài code mới</a>
+<a href="{{ url_for('add') }}">➕ Thêm bài code mới</a>
 
 <ul>
   {% for entry in entries %}
@@ -38,6 +35,9 @@ INDEX_HTML = '''
       <strong>{{ entry.title }}</strong><br>
       <pre>{{ entry.problem }}</pre>
       <pre>{{ entry.code }}</pre>
+      <form method="post" action="{{ url_for('delete', entry_id=entry.id) }}" style="display:inline;">
+        <button type="submit" onclick="return confirm('Bạn có chắc muốn xoá bài này?');">❌ Xoá</button>
+      </form>
     </li>
   {% else %}
     <li>Chưa có bài code nào.</li>
@@ -45,7 +45,7 @@ INDEX_HTML = '''
 </ul>
 '''
 
-# HTML form thêm bài code
+# Template trang thêm bài
 ADD_HTML = '''
 <!doctype html>
 <title>Thêm bài code mới</title>
@@ -56,9 +56,10 @@ ADD_HTML = '''
     <label>Code Python:<br><textarea name="code" rows="10" cols="60" required></textarea></label><br><br>
     <input type="submit" value="Lưu bài code">
 </form>
-<a href="{{ url_for('index') }}">Quay lại danh sách</a>
+<a href="{{ url_for('index') }}">⬅️ Quay lại danh sách</a>
 '''
 
+# Trang chủ
 @app.route('/')
 def index():
     q = request.args.get('q', '').strip()
@@ -68,6 +69,7 @@ def index():
         entries = CodeEntry.query.all()
     return render_template_string(INDEX_HTML, entries=entries)
 
+# Thêm bài
 @app.route('/add', methods=['GET', 'POST'])
 def add():
     if request.method == 'POST':
@@ -83,8 +85,15 @@ def add():
             return "Vui lòng điền đầy đủ thông tin", 400
     return render_template_string(ADD_HTML)
 
-# ✅ Cấu hình chạy phù hợp với Render
+# Xoá bài
+@app.route('/delete/<int:entry_id>', methods=['POST'])
+def delete(entry_id):
+    entry = CodeEntry.query.get(entry_id)
+    if entry:
+        db.session.delete(entry)
+        db.session.commit()
+    return redirect(url_for('index'))
+
+# Chạy ứng dụng
 if __name__ == '__main__':
-    import os
-    port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=10000)
