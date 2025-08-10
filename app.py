@@ -15,9 +15,11 @@ class CodeEntry(db.Model):
     problem = db.Column(db.Text, nullable=False)
     code = db.Column(db.Text, nullable=False)
 
-db.create_all()
+# ✅ Phải có application context khi tạo database
+with app.app_context():
+    db.create_all()
 
-# Template HTML nhúng sẵn trong file Python
+# HTML template danh sách bài code
 INDEX_HTML = '''
 <!doctype html>
 <title>Code Storage</title>
@@ -43,6 +45,7 @@ INDEX_HTML = '''
 </ul>
 '''
 
+# HTML form thêm bài code
 ADD_HTML = '''
 <!doctype html>
 <title>Thêm bài code mới</title>
@@ -80,5 +83,8 @@ def add():
             return "Vui lòng điền đầy đủ thông tin", 400
     return render_template_string(ADD_HTML)
 
+# ✅ Cấu hình chạy phù hợp với Render
 if __name__ == '__main__':
-    app.run(debug=True)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=True, host='0.0.0.0', port=port)
