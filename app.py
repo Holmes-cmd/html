@@ -4,9 +4,10 @@ import os
 
 app = Flask(__name__)
 
-# Kết nối tới PostgreSQL thông qua biến môi trường hoặc URL trực tiếp
+# Kết nối tới PostgreSQL qua biến môi trường hoặc fallback dùng URL mặc định (bạn cần sửa cho đúng)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL") or \
-    "postgresql://code_db_mgnh_user:u1ZvGN71xJZK2jm8oVwackzbi5z1fuHe@dpg-d2d09tggjchc739to9f0-a/code_db_mgnh"
+    "postgresql://code_db_mgnh_user:u1ZvGN71xJZK2jm8oVwackzbi5z1fuHe@dpg-d2d09tggjchc739to9f0-a.postgres.render.com:5432/code_db_mgnh"
+
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -18,10 +19,11 @@ class CodeEntry(db.Model):
     problem = db.Column(db.Text, nullable=False)
     code = db.Column(db.Text, nullable=False)
 
+# Tạo bảng nếu chưa có
 with app.app_context():
     db.create_all()
 
-# HTML template - trang chính
+# HTML template trang chính
 INDEX_HTML = '''
 <!doctype html>
 <title>Code Storage</title>
@@ -50,7 +52,7 @@ INDEX_HTML = '''
 </ul>
 '''
 
-# HTML template - thêm bài
+# HTML template trang thêm bài
 ADD_HTML = '''
 <!doctype html>
 <title>Thêm bài code mới</title>
@@ -64,7 +66,6 @@ ADD_HTML = '''
 <a href="{{ url_for('index') }}">⬅️ Quay lại danh sách</a>
 '''
 
-# Trang chủ
 @app.route('/')
 def index():
     q = request.args.get('q', '').strip()
@@ -74,7 +75,6 @@ def index():
         entries = CodeEntry.query.all()
     return render_template_string(INDEX_HTML, entries=entries)
 
-# Trang thêm bài
 @app.route('/add', methods=['GET', 'POST'])
 def add():
     if request.method == 'POST':
@@ -90,7 +90,6 @@ def add():
             return "Vui lòng điền đầy đủ thông tin", 400
     return render_template_string(ADD_HTML)
 
-# Xoá bài
 @app.route('/delete/<int:entry_id>', methods=['POST'])
 def delete(entry_id):
     entry = CodeEntry.query.get(entry_id)
@@ -99,6 +98,5 @@ def delete(entry_id):
         db.session.commit()
     return redirect(url_for('index'))
 
-# Gunicorn sẽ dùng app này để chạy
 if __name__ == '__main__':
     app.run(debug=True)
