@@ -13,10 +13,11 @@ class CodeEntry(db.Model):
     problem = db.Column(db.Text, nullable=False)
     code = db.Column(db.Text, nullable=False)
 
+# Tạo bảng nếu chưa có
 with app.app_context():
     db.create_all()
 
-# Template HTML trang danh sách (thêm nút xoá)
+# Template HTML trang danh sách
 INDEX_HTML = '''
 <!doctype html>
 <title>Code Storage</title>
@@ -94,6 +95,4 @@ def delete(entry_id):
         db.session.commit()
     return redirect(url_for('index'))
 
-# Chạy ứng dụng
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=10000)
+# KHÔNG CẦN app.run()
