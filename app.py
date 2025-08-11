@@ -1,9 +1,14 @@
 from flask import Flask, request, redirect, url_for, render_template_string
 from flask_sqlalchemy import SQLAlchemy
+import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///code_storage.db'
+
+# Kết nối tới PostgreSQL thông qua biến môi trường hoặc URL trực tiếp
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL") or \
+    "postgresql://code_db_mgnh_user:u1ZvGN71xJZK2jm8oVwackzbi5z1fuHe@dpg-d2d09tggjchc739to9f0-a/code_db_mgnh"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 db = SQLAlchemy(app)
 
 # Model lưu trữ bài code
@@ -13,11 +18,10 @@ class CodeEntry(db.Model):
     problem = db.Column(db.Text, nullable=False)
     code = db.Column(db.Text, nullable=False)
 
-# Tạo bảng nếu chưa có
 with app.app_context():
     db.create_all()
 
-# Template HTML trang danh sách
+# HTML template - trang chính
 INDEX_HTML = '''
 <!doctype html>
 <title>Code Storage</title>
@@ -46,7 +50,7 @@ INDEX_HTML = '''
 </ul>
 '''
 
-# Template trang thêm bài
+# HTML template - thêm bài
 ADD_HTML = '''
 <!doctype html>
 <title>Thêm bài code mới</title>
@@ -70,7 +74,7 @@ def index():
         entries = CodeEntry.query.all()
     return render_template_string(INDEX_HTML, entries=entries)
 
-# Thêm bài
+# Trang thêm bài
 @app.route('/add', methods=['GET', 'POST'])
 def add():
     if request.method == 'POST':
@@ -95,4 +99,6 @@ def delete(entry_id):
         db.session.commit()
     return redirect(url_for('index'))
 
-# KHÔNG CẦN app.run()
+# Gunicorn sẽ dùng app này để chạy
+if __name__ == '__main__':
+    app.run(debug=True)
